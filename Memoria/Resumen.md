@@ -61,3 +61,50 @@ En cambio, el principal argumento del segundo principio es que la *altura* en la
 Para cumplir con estos dos principios, el algoritmo **Líderes y Seguidores** propone emplear dos poblaciones separadas, la primera se denomina *Líderes* y la segunda *Seguidores*. El conjunto de Líderes mantiene las mejores soluciones encontradas por el algoritmo hasta el momento, mientras que el segundo se encargará de la búsqueda de nuevas soluciones.
 
 Esta separación en dos poblaciones nos permite cumplir el primer principio, pues las nuevas soluciones que generen los Seguidores serán comparadas con las demás soluciones en el conjunto de Seguidores, sin que haya interacción con ninguna solución en el conjunto de Líderes. La población de los Líderes por su parte se actualizará con las soluciones de los Seguidores solo después de que se hayan realizado las búsquedas suficientes en el contexto de los seguidores.
+
+Por otra parte durante el algoritmo se realizan reinicios rápidos frecuentes en la población de los seguidores, que permite que la exploración sea más eficiente gracias a que eliminan el sesgo entre las regiones de atracción, de acuerdo con el segundo principio.
+
+
+#### Implementación del algoritmo
+
+Teniendo en cuenta todo esto el pseudocódigo del algoritmo es el siguiente: 
+
+```
+L <- Inicializar Líderes con n vectores aleatorios uniformes.
+F <- Inicializar Seguidores con n vectores aleatorios uniformes.
+
+repeat
+
+  for i=1 to n do
+    leader <- Tomar un lider de L
+    follower <- Tomar un seguidor de F
+    trial <- create_trial(leader,follower)
+    if f(trial) < f(follower) then 
+      Sustituir follower por trial en F
+  
+  if median(f(F))< median(f(L)) then 
+    L<- merge_populations(L,F)
+    F<- Reiniciar de nuevo Seguidores con vectores aleatorios.
+  
+until El criterio de terminación se satisfaga
+```
+
+En primer lugar, el conjunto de Líderes y Seguidores se inicializan con $n$ vectores aleatorios siguiendo una distribución normal en el dominio de definición. 
+
+El algoritmo principal comienza con una ronda de actualizaciones en el conjunto de Seguidores, para ello se crean $n$ pares $(lider,seguidor)$ de manera que se crea un nuevo $trial$ usando el procedimiento *create_trial* que implementa la siguiente fórmula: 
+
+$$trial_i = follower_i + \epsilon_i 2 (leader_i - follower_i)$$
+
+Dónde $\epsilon_i$ es un parámetro que se elige aleatoriamente siguiendo una distribución uniforme $(0,1)$ independiente para cada dimensión. 
+
+Si el nuevo $trial$ es mejor que el seguidor lo reemplaza en el conjunto de Seguidores (fijémonos que se compara con los seguidores, no los líderes). Por lo tanto, las nuevas soluciones se generan en un hiper-rectángulo centrado en el líder seleccionado, como se muestra en la imagen.
+
+![La región sombreada de gris indica las regiones de búsqueda de nuevas soluciones cuando tienen tamaño máximo (epsilon=1)en la izquierda, y cuando están acotadas en la derecha.](Imagenes/busqueda.png)
+
+En la segunda parte del bucle principal, se comprueba si la mediana de los fitness del conjunto de seguidores es mejor que la mediana en el conjunto de líderes, y se considera que ambas poblaciones son comparables y que es seguro mezclarlas cuando la mediana de los seguidores es mejor que la de los líderes.
+
+Finalmente, la función *merge_populations* cambia el conjunto de líderes de la siguiente manera: 
+  - Se mantiene al mejor líder hasta el momento.
+  - Se hace torneo binario sin reemplazamiento con los otros $n-1$ líderes.
+
+Tras actualizar el conjunto de Líderes, se reinicializa el de Seguidores para evitar que la infomación acumulada por este conjunto afecte en futuras comparaciones.
